@@ -320,7 +320,7 @@ export default function OchoAlMorocho() {
                 {cartaActual.numero ? `CARTA ${cartaActual.numero}` : 'ESPECIAL'}
               </span>
               <h3 className="text-2xl font-black text-slate-900 mb-2">
-                {cartaActual.numero ? `${cartaActual.numero} - ${cartaActual.titulo}` : cartaActual.titulo}
+                {cartaActual.titulo}
               </h3>
               <p className="text-slate-600 text-sm leading-relaxed mb-4 font-medium">
                 {cartaActual.explicacion}
