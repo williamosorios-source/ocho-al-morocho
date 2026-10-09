@@ -4,20 +4,20 @@ import React, { useState } from 'react';
 
 // Tipos de cartas/fichas del juego (54 cartas en total)
 const TIPOS_CARTAS = [
-  { id: 'venganza', titulo: 'Venganza', cantidad: 4, explicacion: 'Guarda esta carta. Puedes usarla en cualquier momento para poner un reto, regla o castigo a una persona o al grupo.' },
-  { id: 'tomas_vos', titulo: 'Tomas Vos', cantidad: 4, explicacion: 'Te toca tomar un trago inmediatamente.' },
-  { id: 'yo_nunca', titulo: 'Yo Nunca He', cantidad: 4, explicacion: "Inicia una ronda de 'Yo nunca he...'. Quien lo haya hecho o pierda, toma." },
-  { id: 'nueva_regla', titulo: 'Nueva Regla', cantidad: 4, explicacion: 'Escribe o impón una nueva regla que aplique para todos hasta el final del juego.' },
-  { id: 'al_brinco', titulo: 'Al Brinco', cantidad: 4, explicacion: 'Obtienes el poder del brinco. En cualquier momento que saltes, todos deben saltar; el último toma.' },
-  { id: 'al_que_veis', titulo: 'Al que Veis', cantidad: 4, explicacion: 'Mira fijamente a alguien de la mesa. La persona a la que mires tiene que tomar.' },
-  { id: 'pum_pum', titulo: 'Pum Pum', cantidad: 4, explicacion: "Di un número del 1 al 9. Cuenten en orden omitiendo ese número y diciendo 'pum pum'. Quien se equivoque toma." },
-  { id: 'al_morocho', titulo: 'Al Morocho', cantidad: 4, explicacion: 'Toma la persona más morena del grupo.' },
-  { id: 'al_se_mueva', titulo: 'Al que se Mueva', cantidad: 4, explicacion: 'Todos se quedan estatuas excepto tú. El primero que se mueva toma.' },
-  { id: 'el_juez', titulo: 'El Juez', cantidad: 4, explicacion: 'Debes tomar un trago y servir un trago en el vaso central del Juez.' },
-  { id: 'pasa', titulo: 'Pasa', cantidad: 2, explicacion: 'Te salvaste por este turno. No tienes que hacer nada.' },
-  { id: 'barquito', titulo: 'Barquito de Papel', cantidad: 4, explicacion: "Cultura chupística: empiecen diciendo 'En mi barquito de papel llevo...'. El que pierda o repita, toma." },
-  { id: 'vaso_lleno', titulo: 'Vaso Lleno', cantidad: 4, explicacion: '¡Te tocó la peor parte! Tienes que tomarte un vaso completo.' },
-  { id: 'guerra_tragos', titulo: 'Guerra de Tragos', cantidad: 4, explicacion: 'Elige a un rival para jugar un Piedra, Papel o Tijera rápido. El perdedor se toma un trago.' }
+  { id: 'venganza', numero: '', titulo: 'Venganza', cantidad: 4, explicacion: 'Guarda esta carta. Puedes usarla en cualquier momento para poner un reto, regla o castigo a una persona o al grupo.' },
+  { id: 'tomas_vos', numero: '2', titulo: 'Tomas Vos', cantidad: 4, explicacion: 'Te toca tomar un trago inmediatamente.' },
+  { id: 'yo_nunca', numero: '3', titulo: 'Yo Nunca He', cantidad: 4, explicacion: "Inicia una ronda de 'Yo nunca he...'. Quien lo haya hecho o pierda, toma." },
+  { id: 'nueva_regla', numero: '4', titulo: 'Nueva Regla', cantidad: 4, explicacion: 'Escribe o impón una nueva regla que aplique para todos hasta el final del juego.' },
+  { id: 'al_brinco', numero: '5', titulo: 'Al Brinco', cantidad: 4, explicacion: 'Obtienes el poder del brinco. En cualquier momento que saltes, todos deben saltar; el último toma.' },
+  { id: 'al_que_veis', numero: '6', titulo: 'Al que Veis', cantidad: 4, explicacion: 'Mira fijamente a alguien de la mesa. La persona a la que mires tiene que tomar.' },
+  { id: 'pum_pum', numero: '7', titulo: 'Pum Pum', cantidad: 4, explicacion: "Di un número del 1 al 9. Cuenten en orden omitiendo ese número y diciendo 'pum pum'. Quien se equivoque toma." },
+  { id: 'al_morocho', numero: '8', titulo: 'Al Morocho', cantidad: 4, explicacion: 'Toma la persona más morena del grupo.' },
+  { id: 'al_se_mueva', numero: '9', titulo: 'Al que se Mueva', cantidad: 4, explicacion: 'Todos se quedan estatuas excepto tú. El primero que se mueva toma.' },
+  { id: 'el_juez', numero: '10', titulo: 'El Juez', cantidad: 4, explicacion: 'Debes tomar un trago y servir un trago en el vaso central del Juez.' },
+  { id: 'pasa', numero: '', titulo: 'Pasa', cantidad: 2, explicacion: 'Te salvaste por este turno. No tienes que hacer nada.' },
+  { id: 'barquito', numero: '', titulo: 'Barquito de Papel', cantidad: 4, explicacion: "Cultura chupística: empiecen diciendo 'En mi barquito de papel llevo...'. El que pierda o repita, toma." },
+  { id: 'vaso_lleno', numero: '', titulo: 'Vaso Lleno', cantidad: 4, explicacion: '¡Te tocó la peor parte! Tienes que tomarte un vaso completo.' },
+  { id: 'guerra_tragos', numero: '', titulo: 'Guerra de Tragos', cantidad: 4, explicacion: 'Elige a un rival para jugar un Piedra, Papel o Tijera rápido. El perdedor se toma un trago.' }
 ];
 
 // Sugerencias divertidas para la carta "Nueva Regla"
@@ -316,11 +316,11 @@ export default function OchoAlMorocho() {
             </div>
           ) : (
             <div className="w-full bg-white rounded-3xl p-5 shadow-xl border-2 border-slate-200 text-center animate-fade-in">
-              <span className="inline-block bg-amber-100 text-amber-800 font-black px-3 py-1 rounded-full text-xs uppercase mb-2">
-                {cartaActual.titulo}
+              <span className="inline-block bg-amber-100 text-amber-800 font-black px-3 py-1 rounded-full text-xs uppercase mb-1">
+                {cartaActual.numero ? `CARTA ${cartaActual.numero}` : 'ESPECIAL'}
               </span>
               <h3 className="text-2xl font-black text-slate-900 mb-2">
-                {cartaActual.titulo}
+                {cartaActual.numero ? `${cartaActual.numero} - ${cartaActual.titulo}` : cartaActual.titulo}
               </h3>
               <p className="text-slate-600 text-sm leading-relaxed mb-4 font-medium">
                 {cartaActual.explicacion}
@@ -478,7 +478,7 @@ export default function OchoAlMorocho() {
                 <ul className="list-disc pl-4 space-y-1">
                   {TIPOS_CARTAS.map((c) => (
                     <li key={c.id}>
-                      <strong>{c.titulo} ({c.cantidad}):</strong> {c.explicacion}
+                      <strong>{c.numero ? `${c.numero} - ` : ''}{c.titulo} ({c.cantidad}):</strong> {c.explicacion}
                     </li>
                   ))}
                 </ul>
