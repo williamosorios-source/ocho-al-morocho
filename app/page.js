@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Tipos de cartas/fichas del juego (54 cartas en total)
 const TIPOS_CARTAS = [
@@ -20,7 +20,6 @@ const TIPOS_CARTAS = [
   { id: 'guerra_tragos', numero: '', titulo: 'Guerra de Tragos', cantidad: 4, explicacion: 'Elige a un rival para jugar un Piedra, Papel o Tijera rápido. El perdedor se toma un trago.' }
 ];
 
-// Sugerencias divertidas para la carta "Nueva Regla"
 const SUGERENCIAS_REGLAS = [
   "Prohibido decir 'Sí' o 'No'",
   "Tomar solo con la mano no dominante",
@@ -45,7 +44,7 @@ function crearMazo() {
 }
 
 export default function OchoAlMorocho() {
-  const [fase, setFase] = useState('REGISTRO'); // 'REGISTRO' | 'BIENVENIDA' | 'INICIO_TURNO' | 'SACAR_CARTA' | 'TRANSICION'
+  const [fase, setFase] = useState('REGISTRO');
   const [jugadores, setJugadores] = useState([]);
   const [nuevoNombre, setNuevoNombre] = useState('');
   
@@ -61,22 +60,103 @@ export default function OchoAlMorocho() {
   const [letrasJuezCount, setLetrasJuezCount] = useState(0);
   const [mostrarModalJuez, setMostrarModalJuez] = useState(false);
   
-  // Modales de UI
+  // Modales
   const [mostrarReglasGenerales, setMostrarReglasGenerales] = useState(false);
+  const [mostrarGestionJugadores, setMostrarGestionJugadores] = useState(false);
+  const [cargadoMemoria, setCargadoMemoria] = useState(false);
 
-  // --- REGISTRO DE JUGADORES ---
+  // --- CARGAR Y GUARDAR EN MEMORIA LOCAL (LOCALSTORAGE) ---
+  useEffect(() => {
+    const estadoGuardado = localStorage.getItem('ocho_al_morocho_estado');
+    if (estadoGuardado) {
+      try {
+        const datos = JSON.parse(estadoGuardado);
+        setFase(datos.fase || 'REGISTRO');
+        setJugadores(datos.jugadores || []);
+        setMazo(datos.mazo || []);
+        setTurnoIndex(datos.turnoIndex || 0);
+        setCartaActual(datos.cartaActual || null);
+        setVenganzas(datos.venganzas || {});
+        setReglaActiva(datos.reglaActiva || '');
+        setBrincoActivo(datos.brincoActivo || '');
+        setJuezNombre(datos.juezNombre || '');
+        setLetrasJuezCount(datos.letrasJuezCount || 0);
+      } catch (e) {
+        console.error('Error al recuperar estado local', e);
+      }
+    }
+    setCargadoMemoria(true);
+  }, []);
+
+  useEffect(() => {
+    if (cargadoMemoria) {
+      const estadoAProteger = {
+        fase,
+        jugadores,
+        mazo,
+        turnoIndex,
+        cartaActual,
+        venganzas,
+        reglaActiva,
+        brincoActivo,
+        juezNombre,
+        letrasJuezCount,
+      };
+      localStorage.setItem('ocho_al_morocho_estado', JSON.stringify(estadoAProteger));
+    }
+  }, [
+    fase,
+    jugadores,
+    mazo,
+    turnoIndex,
+    cartaActual,
+    venganzas,
+    reglaActiva,
+    brincoActivo,
+    juezNombre,
+    letrasJuezCount,
+    cargadoMemoria,
+  ]);
+
+  const reiniciarPartidaCompleta = () => {
+    if (confirm('¿Seguro que quieres reiniciar la partida desde cero?')) {
+      localStorage.removeItem('ocho_al_morocho_estado');
+      setFase('REGISTRO');
+      setJugadores([]);
+      setMazo([]);
+      setTurnoIndex(0);
+      setCartaActual(null);
+      setVenganzas({});
+      setReglaActiva('');
+      setBrincoActivo('');
+      setJuezNombre('');
+      setLetrasJuezCount(0);
+    }
+  };
+
+  // --- GESTIÓN DE JUGADORES ---
   const agregarJugador = (e) => {
     e.preventDefault();
     if (nuevoNombre.trim()) {
-      if (!jugadores.includes(nuevoNombre.trim())) {
-        setJugadores([...jugadores, nuevoNombre.trim()]);
+      const nombreLimpio = nuevoNombre.trim();
+      if (!jugadores.includes(nombreLimpio)) {
+        setJugadores([...jugadores, nombreLimpio]);
+        setVenganzas((prev) => ({ ...prev, [nombreLimpio]: prev[nombreLimpio] || 0 }));
         setNuevoNombre('');
       }
     }
   };
 
   const eliminarJugador = (nombre) => {
-    setJugadores(jugadores.filter((j) => j !== nombre));
+    if (jugadores.length <= 2 && fase !== 'REGISTRO') {
+      alert('Deben quedar al menos 2 participantes para continuar el juego.');
+      return;
+    }
+    const nuevaLista = jugadores.filter((j) => j !== nombre);
+    setJugadores(nuevaLista);
+    if (turnoIndex >= nuevaLista.length) {
+      setTurnoIndex(0);
+    }
   };
 
   const irABienvenida = () => {
@@ -164,10 +244,12 @@ export default function OchoAlMorocho() {
 
   const letrasJUEZ = ['J', 'U', 'E', 'Z'];
 
+  if (!cargadoMemoria) return null;
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col justify-between p-4 max-w-md mx-auto font-sans shadow-xl relative">
       
-      {/* HEADER / LOGO CON BOTÓN DE REGLAS */}
+      {/* HEADER / LOGO CON CONTROLES */}
       <header className="flex items-center justify-between my-2 bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none">
@@ -177,12 +259,23 @@ export default function OchoAlMorocho() {
             Juego social para fiesta
           </p>
         </div>
-        <button
-          onClick={() => setMostrarReglasGenerales(true)}
-          className="bg-slate-900 text-amber-400 text-xs font-black px-3 py-2 rounded-xl shadow active:scale-95 transition flex items-center gap-1"
-        >
-          📖 Reglas
-        </button>
+        <div className="flex gap-1.5">
+          {fase !== 'REGISTRO' && (
+            <button
+              onClick={() => setMostrarGestionJugadores(true)}
+              className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 active:scale-95 transition"
+              title="Añadir/Eliminar jugadores"
+            >
+              👥 Jugadores
+            </button>
+          )}
+          <button
+            onClick={() => setMostrarReglasGenerales(true)}
+            className="bg-slate-900 text-amber-400 text-xs font-black px-2.5 py-1.5 rounded-xl shadow active:scale-95 transition"
+          >
+            📖 Reglas
+          </button>
+        </div>
       </header>
 
       {/* REGLA ACTIVA Y PODER DEL BRINCO */}
@@ -326,7 +419,6 @@ export default function OchoAlMorocho() {
                 {cartaActual.explicacion}
               </p>
 
-              {/* OPCIONES / SUGERENCIAS PARA "NUEVA REGLA" */}
               {cartaActual.id === 'nueva_regla' && (
                 <div className="mb-4 text-left bg-slate-50 p-3 rounded-2xl border border-slate-200">
                   <p className="text-[11px] font-bold text-slate-500 mb-2">
@@ -439,19 +531,84 @@ export default function OchoAlMorocho() {
               );
             })}
           </div>
-          <p className="text-[10px] text-slate-400">
-            {mazo.length === 0 ? (
-              <button onClick={rebarajar} className="text-amber-400 underline font-bold">
-                ¡Mazo agotado! Toca aquí para rebarajar las 54 fichas.
-              </button>
-            ) : (
-              `Fichas en mazo: ${mazo.length} / 54`
-            )}
-          </p>
+          <div className="flex justify-between items-center text-[10px] text-slate-400 mt-2 px-1">
+            <span>
+              {mazo.length === 0 ? (
+                <button onClick={rebarajar} className="text-amber-400 underline font-bold">
+                  ¡Mazo agotado! Toca aquí para rebarajar.
+                </button>
+              ) : (
+                `Fichas en mazo: ${mazo.length} / 54`
+              )}
+            </span>
+            <button
+              onClick={reiniciarPartidaCompleta}
+              className="text-red-400 font-bold underline hover:text-red-300"
+            >
+              Reiniciar Juego
+            </button>
+          </div>
         </footer>
       )}
 
-      {/* MODAL: GUÍA COMPLETA DE REGLAS DEL JUEGO */}
+      {/* MODAL: GESTIÓN DE JUGADORES A MITAD DE PARTIDA */}
+      {mostrarGestionJugadores && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-5 max-w-sm w-full border-2 border-slate-200">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-black text-slate-900">👥 Modificar Jugadores</h3>
+              <button
+                onClick={() => setMostrarGestionJugadores(false)}
+                className="text-slate-400 font-bold text-lg px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={agregarJugador} className="flex gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="Nombre del nuevo participante"
+                value={nuevoNombre}
+                onChange={(e) => setNuevoNombre(e.target.value)}
+                className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <button
+                type="submit"
+                className="bg-amber-500 text-white font-bold px-3 py-2 rounded-xl text-xs"
+              >
+                Añadir
+              </button>
+            </form>
+
+            <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+              {jugadores.map((j, idx) => (
+                <li
+                  key={idx}
+                  className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold"
+                >
+                  <span>{j} {idx === turnoIndex ? '(Turno actual)' : ''}</span>
+                  <button
+                    onClick={() => eliminarJugador(j)}
+                    className="text-red-500 font-bold px-2"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={() => setMostrarGestionJugadores(false)}
+              className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs"
+            >
+              Guardar y Volver
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: GUÍA COMPLETA DE REGLAS */}
       {mostrarReglasGenerales && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-3xl p-5 max-w-sm w-full border-2 border-slate-200 max-h-[85vh] overflow-y-auto">
