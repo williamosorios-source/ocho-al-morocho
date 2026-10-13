@@ -20,6 +20,25 @@ const TIPOS_CARTAS = [
   { id: 'guerra_tragos', numero: '', titulo: 'Guerra de Tragos', cantidad: 4, explicacion: 'Elige a un rival para jugar un Piedra, Papel o Tijera rápido. El perdedor se toma un trago.' }
 ];
 
+// Las 15 Dinámicas Especiales de Ronda
+const DINAMICAS_RONDAS = [
+  { titulo: 'Doble o Nada', explicacion: 'A quien le toque tomar en esta ronda, toma doble.' },
+  { titulo: 'Gota a Gota', explicacion: 'Quien toma voltea el vaso o la copa sobre su cabeza al terminar. Si cae una gota, vuelve a tomar.' },
+  { titulo: 'Reparte el Trago', explicacion: 'Quien debe tomar puede pasarle el trago a otra persona.' },
+  { titulo: 'Rebote', explicacion: 'Si te toca tomar, toma la persona a tu derecha.' },
+  { titulo: 'Hablar Despacio', explicacion: 'Todos hablan despacio durante esta ronda. Quien hable a velocidad normal, toma.' },
+  { titulo: 'Adivina la Carta', explicacion: 'Antes de voltear su carta, cada jugador dice si saldrá un número o una carta especial. Si falla, toma un trago.' },
+  { titulo: 'Cero Risas', explicacion: 'Quien se ría durante esta ronda, toma.' },
+  { titulo: 'Todos son Morocho', explicacion: 'Prohibido decir nombres: todos se llaman «Morocho». Quien falle, toma.' },
+  { titulo: 'Zurdos', explicacion: 'Todo se hace con la mano izquierda. Quien use la derecha, toma.' },
+  { titulo: 'Tercera Persona', explicacion: 'Hablen de sí mismos en tercera persona. Quien falle, toma.' },
+  { titulo: 'Celulares Abajo', explicacion: 'Quien toque su celular durante esta ronda, toma.' },
+  { titulo: 'Ni Sí ni No', explicacion: 'Prohibido decir «sí» o «no». Quien lo diga, toma.' },
+  { titulo: 'Tregua', explicacion: 'Nadie puede usar cartas de Venganza durante esta ronda.' },
+  { titulo: 'Brindis', explicacion: 'Antes de tomar, haces un brindis. Si no lo haces, tomas otra vez.' },
+  { titulo: 'Confesión', explicacion: 'Antes de tomar, confiesas algo. Si te niegas, tomas doble.' }
+];
+
 const SUGERENCIAS_REGLAS = [
   "Prohibido decir 'Sí' o 'No'",
   "Tomar solo con la mano no dominante",
@@ -56,16 +75,23 @@ export default function OchoAlMorocho() {
   const [inputRegla, setInputRegla] = useState('');
   const [brincoActivo, setBrincoActivo] = useState('');
 
+  // Configuración de Dinámicas por Rondas
+  const [frecuenciaDinamica, setFrecuenciaDinamica] = useState(2); // Cada X rondas (0 = desactivado)
+  const [numeroRonda, setNumeroRonda] = useState(1);
+  const [dinamicaActiva, setDinamicaActiva] = useState(null);
+  const [mostrarModalDinamica, setMostrarModalDinamica] = useState(false);
+
+  // Estados del Juez
   const [juezNombre, setJuezNombre] = useState('');
   const [letrasJuezCount, setLetrasJuezCount] = useState(0);
   const [mostrarModalJuez, setMostrarModalJuez] = useState(false);
   
-  // Modales
+  // Modales UI
   const [mostrarReglasGenerales, setMostrarReglasGenerales] = useState(false);
   const [mostrarGestionJugadores, setMostrarGestionJugadores] = useState(false);
   const [cargadoMemoria, setCargadoMemoria] = useState(false);
 
-  // --- CARGAR Y GUARDAR EN MEMORIA LOCAL (LOCALSTORAGE) ---
+  // --- LOCALSTORAGE ---
   useEffect(() => {
     const estadoGuardado = localStorage.getItem('ocho_al_morocho_estado');
     if (estadoGuardado) {
@@ -81,6 +107,9 @@ export default function OchoAlMorocho() {
         setBrincoActivo(datos.brincoActivo || '');
         setJuezNombre(datos.juezNombre || '');
         setLetrasJuezCount(datos.letrasJuezCount || 0);
+        setFrecuenciaDinamica(datos.frecuenciaDinamica !== undefined ? datos.frecuenciaDinamica : 2);
+        setNumeroRonda(datos.numeroRonda || 1);
+        setDinamicaActiva(datos.dinamicaActiva || null);
       } catch (e) {
         console.error('Error al recuperar estado local', e);
       }
@@ -101,6 +130,9 @@ export default function OchoAlMorocho() {
         brincoActivo,
         juezNombre,
         letrasJuezCount,
+        frecuenciaDinamica,
+        numeroRonda,
+        dinamicaActiva,
       };
       localStorage.setItem('ocho_al_morocho_estado', JSON.stringify(estadoAProteger));
     }
@@ -115,6 +147,9 @@ export default function OchoAlMorocho() {
     brincoActivo,
     juezNombre,
     letrasJuezCount,
+    frecuenciaDinamica,
+    numeroRonda,
+    dinamicaActiva,
     cargadoMemoria,
   ]);
 
@@ -131,6 +166,8 @@ export default function OchoAlMorocho() {
       setBrincoActivo('');
       setJuezNombre('');
       setLetrasJuezCount(0);
+      setNumeroRonda(1);
+      setDinamicaActiva(null);
     }
   };
 
@@ -168,10 +205,23 @@ export default function OchoAlMorocho() {
     setMazo(nuevoMazo);
     setVenganzas(venganzasIniciales);
     setTurnoIndex(0);
+    setNumeroRonda(1);
+    
+    // Verificar si la primera ronda requiere dinámica
+    if (frecuenciaDinamica > 0 && 1 % frecuenciaDinamica === 0) {
+      const dinAzar = DINAMICAS_RONDAS[Math.floor(Math.random() * DINAMICAS_RONDAS.length)];
+      setDinamicaActiva(dinAzar);
+    } else {
+      setDinamicaActiva(null);
+    }
+
     setFase('BIENVENIDA');
   };
 
   const comenzarPartidaOficial = () => {
+    if (dinamicaActiva) {
+      setMostrarModalDinamica(true);
+    }
     setFase('INICIO_TURNO');
   };
 
@@ -228,6 +278,22 @@ export default function OchoAlMorocho() {
 
   const finalizarTurno = () => {
     const siguienteIndex = (turnoIndex + 1) % jugadores.length;
+    
+    // Si completamos una vuelta completa de turnos, avanzamos la ronda
+    if (siguienteIndex === 0) {
+      const nuevaRonda = numeroRonda + 1;
+      setNumeroRonda(nuevaRonda);
+
+      // Evaluar si le toca dinámica a la nueva ronda
+      if (frecuenciaDinamica > 0 && nuevaRonda % frecuenciaDinamica === 0) {
+        const dinAzar = DINAMICAS_RONDAS[Math.floor(Math.random() * DINAMICAS_RONDAS.length)];
+        setDinamicaActiva(dinAzar);
+        setMostrarModalDinamica(true);
+      } else {
+        setDinamicaActiva(null);
+      }
+    }
+
     setTurnoIndex(siguienteIndex);
     setFase('TRANSICION');
   };
@@ -256,7 +322,7 @@ export default function OchoAlMorocho() {
             OCHO <span className="text-amber-500">AL MOROCHO</span>
           </h1>
           <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
-            Juego social para fiesta
+            Ronda {numeroRonda}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -264,7 +330,6 @@ export default function OchoAlMorocho() {
             <button
               onClick={() => setMostrarGestionJugadores(true)}
               className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 active:scale-95 transition"
-              title="Añadir/Eliminar jugadores"
             >
               👥 Jugadores
             </button>
@@ -278,12 +343,17 @@ export default function OchoAlMorocho() {
         </div>
       </header>
 
-      {/* REGLA ACTIVA Y PODER DEL BRINCO */}
-      {(reglaActiva || brincoActivo) && (
-        <div className="space-y-2 mb-2">
+      {/* PANELES ACTIVOS: DINÁMICA DE RONDA, REGLA Y BRINCO */}
+      {(dinamicaActiva || reglaActiva || brincoActivo) && (
+        <div className="space-y-1.5 mb-2">
+          {dinamicaActiva && (
+            <div className="bg-purple-600 text-white p-2.5 rounded-xl text-xs font-medium shadow-md border border-purple-700 flex justify-between items-center animate-pulse">
+              <span>🎭 <strong>Dinámica de Ronda:</strong> {dinamicaActiva.titulo} - <em>{dinamicaActiva.explicacion}</em></span>
+            </div>
+          )}
           {reglaActiva && (
-            <div className="bg-amber-50 border border-amber-300 p-2.5 rounded-xl text-xs text-amber-900 font-medium flex justify-between items-center">
-              <span>📌 <strong>Regla Activa:</strong> {reglaActiva}</span>
+            <div className="bg-amber-50 border border-amber-300 p-2.5 rounded-xl text-xs text-amber-900 font-medium">
+              📌 <strong>Regla Activa:</strong> {reglaActiva}
             </div>
           )}
           {brincoActivo && (
@@ -320,7 +390,7 @@ export default function OchoAlMorocho() {
             </button>
           </form>
 
-          <ul className="space-y-2 mb-6 max-h-48 overflow-y-auto">
+          <ul className="space-y-2 mb-4 max-h-36 overflow-y-auto">
             {jugadores.map((j, idx) => (
               <li
                 key={idx}
@@ -336,6 +406,24 @@ export default function OchoAlMorocho() {
               </li>
             ))}
           </ul>
+
+          {/* SELECTOR DE FRECUENCIA DE DINÁMICAS */}
+          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 mb-5">
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              🎭 Frecuencia de Dinámicas de Ronda:
+            </label>
+            <select
+              value={frecuenciaDinamica}
+              onChange={(e) => setFrecuenciaDinamica(Number(e.target.value))}
+              className="w-full bg-white border border-slate-300 rounded-xl p-2 text-xs font-semibold focus:ring-2 focus:ring-amber-500"
+            >
+              <option value={1}>Cada 1 ronda (¡Muy Dinámico!)</option>
+              <option value={2}>Cada 2 rondas (Recomendado)</option>
+              <option value={3}>Cada 3 rondas</option>
+              <option value={4}>Cada 4 rondas</option>
+              <option value={0}>Desactivar dinámicas</option>
+            </select>
+          </div>
 
           <button
             onClick={irABienvenida}
@@ -364,7 +452,7 @@ export default function OchoAlMorocho() {
           <div className="bg-amber-50 p-3 rounded-2xl text-left text-xs text-slate-700 space-y-2 mb-6 border border-amber-200">
             <p>⚡ <strong>Turnos pasados:</strong> Al terminar tu carta, pásale el teléfono a quien corresponda.</p>
             <p>👑 <strong>El Juez:</strong> Quien saque la 1ª carta de Juez servirá un vaso central. ¡Al completarse la palabra <strong>J-U-E-Z</strong>, se lo toma todo!</p>
-            <p>🎯 <strong>Venganza:</strong> Si te sale una Venganza, guárdala para usarla en cualquier momento.</p>
+            <p>🎭 <strong>Dinámicas:</strong> Cada {frecuenciaDinamica > 0 ? `${frecuenciaDinamica} rondas` : 'cierto tiempo'} saldrá una regla global para todo el grupo.</p>
           </div>
           <button
             onClick={comenzarPartidaOficial}
@@ -551,7 +639,31 @@ export default function OchoAlMorocho() {
         </footer>
       )}
 
-      {/* MODAL: GESTIÓN DE JUGADORES A MITAD DE PARTIDA */}
+      {/* MODAL EMERGENTE: NUEVA DINÁMICA DE RONDA */}
+      {mostrarModalDinamica && dinamicaActiva && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-purple-900 text-white rounded-3xl p-6 text-center max-w-sm w-full border-4 border-purple-400 shadow-2xl">
+            <div className="text-4xl mb-2">🎭✨</div>
+            <span className="bg-purple-700 text-purple-200 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+              NUEVA DINÁMICA - RONDA {numeroRonda}
+            </span>
+            <h3 className="text-2xl font-black text-amber-400 my-3">
+              {dinamicaActiva.titulo}
+            </h3>
+            <p className="text-xs text-purple-100 font-medium leading-relaxed mb-6">
+              {dinamicaActiva.explicacion}
+            </p>
+            <button
+              onClick={() => setMostrarModalDinamica(false)}
+              className="w-full bg-amber-500 text-slate-900 font-black py-3 rounded-xl shadow-md active:scale-95 transition"
+            >
+              ¡ENTENDIDO, APLICAR REGLA!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: GESTIÓN DE JUGADORES */}
       {mostrarGestionJugadores && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-3xl p-5 max-w-sm w-full border-2 border-slate-200">
@@ -636,6 +748,17 @@ export default function OchoAlMorocho() {
                   {TIPOS_CARTAS.map((c) => (
                     <li key={c.id}>
                       <strong>{c.numero ? `${c.numero} - ` : ''}{c.titulo} ({c.cantidad}):</strong> {c.explicacion}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="border-t border-slate-100 pt-2">
+                <p className="font-bold text-slate-900 mb-1">Las 15 Dinámicas de Ronda:</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  {DINAMICAS_RONDAS.map((d, i) => (
+                    <li key={i}>
+                      <strong>{d.titulo}:</strong> {d.explicacion}
                     </li>
                   ))}
                 </ul>
